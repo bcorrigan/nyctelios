@@ -21,7 +21,7 @@ impl World {
             let r1 = max(-map_radius, -q - map_radius);
             let r2 = min(map_radius, -q + map_radius);
             for r in r1..r2 {
-                let coordinate = Coordinate::from_cubic(q,r);
+                let coordinate = Coordinate::from_cubic(q,r, 0 - q - r);
                 let data = if small_rng.gen_bool(0.5) {
                     Type::Red
                 } else {
@@ -31,7 +31,7 @@ impl World {
                 
             }
         }
-
+ 
         let size=28.0;
         
         World { 

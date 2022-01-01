@@ -60,7 +60,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
 
         //todo only clear meshbatch and recalculate world if something changes
         for (cell, data) in &self.world.map {
-            let (x,y) = cell.to_cartesian_center(self.world.spacing);
+            let (x,y) = cell.cartesian_center(self.world.spacing);
             let p = graphics::DrawParam::new().dest(
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
             self.meshbatch.add(p);
