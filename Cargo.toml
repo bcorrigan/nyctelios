@@ -1,0 +1,13 @@
+[package]
+name = "nyctelios"
+version = "0.1.0"
+authors = ["bcorrigan <b.j.corrigan@gmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ggez = "0.7"
+glam = { version = "0.20", features = ["mint"]}
+hexgrid = { git="https://github.com/huhlig/hexgrid.git" }
+rand = {version = "0.8", features=["small_rng"]}
