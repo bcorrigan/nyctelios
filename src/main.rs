@@ -61,6 +61,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         self.meshbatch.clear();
+
+        if (self.frames % 10) == 0 {
+            self.world = World::new();
+        }
         
 
         //todo only clear meshbatch and recalculate world if something changes
@@ -69,8 +73,8 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let p = graphics::DrawParam::new().dest(
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
             let p2 = match data {
-                &hex::Type::Blue => p.color(graphics::Color::new(0.0, 0.0, 1.0, 1.0)),
-                &hex::Type::Red => p.color(graphics::Color::new(1.0, 0.0, 0.0, 1.0)),
+                &hex::Type::Blue => p.color(graphics::Color::new(1.0, 0.7529, 0.7961, 1.0)), //pink
+                &hex::Type::Red => p.color(graphics::Color::new(0.9882, 0.9137, 0.0118, 1.0)), //yellow
             };
             
             self.meshbatch.add(p2);
