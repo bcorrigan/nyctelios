@@ -1,6 +1,6 @@
 use ggez::event;
 use ggez::graphics;
-use ggez::graphics::MeshBatch;
+use ggez::graphics::{MeshBatch, DrawMode, FillOptions};
 use ggez::{Context, GameResult};
 use hex::World;
 use std::env;
@@ -28,20 +28,20 @@ impl MainState {
 
         let h = world.size * (PI/3.0).sin();
         let t = world.size * (PI/6.0).sin();
+        let margin = 1.0;
 
-        mb.line(
-            &[
-                Vec2::new(0.0,0.0),
-                Vec2::new(world.size, 0.0),
-                Vec2::new(world.size + t, -h),
-                Vec2::new(world.size, -2.0 * h),
-                Vec2::new(0.0, -2.0 * h),
-                Vec2::new(-t, -h),
-                Vec2::new(0.0,0.0),
-            ],
-            1.0,
-            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-        )?;
+        mb.polygon(
+           DrawMode::Fill(FillOptions::default()), 
+         &[
+            Vec2::new(0.0+margin,0.0-margin),
+            Vec2::new(world.size-margin, 0.0-margin),
+            Vec2::new(world.size + t-margin, -h),
+            Vec2::new(world.size-margin, -2.0 * h + margin),
+            Vec2::new(0.0+margin, -2.0 * h + margin),
+            Vec2::new(-t+margin, -h),
+            Vec2::new(0.0+margin,0.0-margin),
+          ],
+          graphics::Color::new(1.0, 1.0, 1.0, 0.2))?;
 
         let mesh = mb.build(ctx)?;
         let s = MainState { frames: 0, meshbatch: MeshBatch::new(mesh)?, world };
@@ -63,6 +63,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let (x,y) = cell.cartesian_center(self.world.spacing);
             let p = graphics::DrawParam::new().dest(
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
+            match data {
+                &hex::Type::Blue => p.color(graphics::Color::new(0.0, 0.0, 1.0, 1.0)),
+                &hex::Type::Red => p.color(graphics::Color::new(1.0, 0.0, 0.0, 1.0)),
+            };
             self.meshbatch.add(p);
         }
 
