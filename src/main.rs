@@ -1,5 +1,6 @@
 use ggez::event;
 use ggez::graphics;
+use ggez::graphics::Drawable;
 use ggez::graphics::{MeshBatch, DrawMode, FillOptions};
 use ggez::{Context, GameResult};
 use hex::World;
@@ -41,10 +42,13 @@ impl MainState {
             Vec2::new(-t+margin, -h),
             Vec2::new(0.0+margin,0.0-margin),
           ],
-          graphics::Color::new(1.0, 1.0, 1.0, 0.2))?;
+          graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 
-        let mesh = mb.build(ctx)?;
-        let s = MainState { frames: 0, meshbatch: MeshBatch::new(mesh)?, world };
+        let mut mesh = mb.build(ctx)?;
+        //mesh.set_blend_mode(Some(ggez::graphics::BlendMode::Replace));
+        let mut meshbatch = MeshBatch::new(mesh)?;
+        //meshbatch.set_blend_mode(Some(ggez::graphics::BlendMode::Add));
+        let s = MainState { frames: 0, meshbatch, world };
         Ok(s)
     }
 }
@@ -57,17 +61,19 @@ impl event::EventHandler<ggez::GameError> for MainState {
     fn draw(&mut self, ctx: &mut Context) -> GameResult {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         self.meshbatch.clear();
+        
 
         //todo only clear meshbatch and recalculate world if something changes
         for (cell, data) in &self.world.map {
             let (x,y) = cell.cartesian_center(self.world.spacing);
             let p = graphics::DrawParam::new().dest(
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
-            match data {
+            let p2 = match data {
                 &hex::Type::Blue => p.color(graphics::Color::new(0.0, 0.0, 1.0, 1.0)),
                 &hex::Type::Red => p.color(graphics::Color::new(1.0, 0.0, 0.0, 1.0)),
             };
-            self.meshbatch.add(p);
+            
+            self.meshbatch.add(p2);
         }
 
         self.meshbatch.draw(ctx, graphics::DrawParam::default())?;
@@ -96,6 +102,7 @@ pub fn main() -> GameResult {
     .window_mode(ggez::conf::WindowMode::default().dimensions(1400.0, 1300.0));
     let (mut ctx, event_loop) = cb.build()?;
     graphics::set_window_title(&ctx, "Hexagons are the bestagons");
+    //graphics::set_blend_mode(&mut ctx, ggez::graphics::BlendMode::Replace)?;
 
     let state = MainState::new(&mut ctx)?;
     event::run(ctx, event_loop, state)
