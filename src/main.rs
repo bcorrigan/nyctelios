@@ -1,6 +1,5 @@
 use ggez::event;
 use ggez::graphics;
-use ggez::graphics::Drawable;
 use ggez::graphics::{MeshBatch, DrawMode, FillOptions};
 use ggez::{Context, GameResult};
 use hex::World;
@@ -44,9 +43,9 @@ impl MainState {
           ],
           graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 
-        let mut mesh = mb.build(ctx)?;
+        let mesh = mb.build(ctx)?;
         //mesh.set_blend_mode(Some(ggez::graphics::BlendMode::Replace));
-        let mut meshbatch = MeshBatch::new(mesh)?;
+        let meshbatch = MeshBatch::new(mesh)?;
         //meshbatch.set_blend_mode(Some(ggez::graphics::BlendMode::Add));
         let s = MainState { frames: 0, meshbatch, world };
         Ok(s)
@@ -63,7 +62,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
         self.meshbatch.clear();
 
         if (self.frames % 10) == 0 {
-            self.world = World::new();
+            self.world.iterate();
         }
         
 
@@ -73,8 +72,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
             let p = graphics::DrawParam::new().dest(
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
             let p2 = match data {
-                &hex::Type::Blue => p.color(graphics::Color::new(1.0, 0.7529, 0.7961, 1.0)), //pink
-                &hex::Type::Red => p.color(graphics::Color::new(0.9882, 0.9137, 0.0118, 1.0)), //yellow
+                &hex::Type::On(i) => if i==2 {
+                    p.color(graphics::Color::new(1.0, 1.0, 0.0, 1.0))
+                } else { p.color(graphics::Color::new(0.8, 0.0, 0.0, 1.0)) }, //pink
+                &hex::Type::Off => p.color(graphics::Color::new(0.0, 0.0, 0.0, 1.0)), //yellow
             };
             
             self.meshbatch.add(p2);
