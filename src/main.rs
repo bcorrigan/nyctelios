@@ -31,7 +31,7 @@ impl MainState {
         let margin = 1.0;
 
         mb.polygon(
-           DrawMode::Fill(FillOptions::default()), 
+           DrawMode::Fill(FillOptions::default()),
          &[
             Vec2::new(0.0+margin,0.0-margin),
             Vec2::new(world.size-margin, 0.0-margin),
@@ -43,10 +43,7 @@ impl MainState {
           ],
           graphics::Color::new(1.0, 1.0, 1.0, 1.0))?;
 
-        let mesh = mb.build(ctx)?;
-        //mesh.set_blend_mode(Some(ggez::graphics::BlendMode::Replace));
-        let meshbatch = MeshBatch::new(mesh)?;
-        //meshbatch.set_blend_mode(Some(ggez::graphics::BlendMode::Add));
+        let meshbatch = MeshBatch::new(mb.build(ctx)?)?;
         let s = MainState { frames: 0, meshbatch, world };
         Ok(s)
     }
@@ -61,10 +58,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         self.meshbatch.clear();
 
-        //if (self.frames % 25) == 24 {
-            self.world.iterate();
-        //}
-        
+        if (self.frames % 25) == 24 {
+			self.world.iterate();
+        }
+
 
         //todo only clear meshbatch and recalculate world if something changes
         for (cell, data) in &self.world.map {
@@ -78,7 +75,7 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 } else { p.color(graphics::Color::new(0.8, 0.0, 0.0, 1.0)) }, //pink
                 &hex::Type::Off => p.color(graphics::Color::new(0.2, 0.2, 0.2, 1.0)), //yellow
             };
-            
+
             self.meshbatch.add(p2);
         }
 
@@ -108,10 +105,7 @@ pub fn main() -> GameResult {
     .window_mode(ggez::conf::WindowMode::default().dimensions(1400.0, 1300.0));
     let (mut ctx, event_loop) = cb.build()?;
     graphics::set_window_title(&ctx, "Hexagons are the bestagons");
-    //graphics::set_blend_mode(&mut ctx, ggez::graphics::BlendMode::Replace)?;
 
     let state = MainState::new(&mut ctx)?;
     event::run(ctx, event_loop, state)
 }
-
-
