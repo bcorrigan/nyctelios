@@ -61,9 +61,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         self.meshbatch.clear();
 
-        if (self.frames % 10) == 0 {
+        //if (self.frames % 25) == 24 {
             self.world.iterate();
-        }
+        //}
         
 
         //todo only clear meshbatch and recalculate world if something changes
@@ -73,9 +73,10 @@ impl event::EventHandler<ggez::GameError> for MainState {
                 Vec2::new(x+2.0 * self.world.radius as f32*self.world.size,y+2.0*self.world.radius as f32*self.world.size));
             let p2 = match data {
                 &hex::Type::On(i) => if i==2 {
+                    //
                     p.color(graphics::Color::new(1.0, 1.0, 0.0, 1.0))
                 } else { p.color(graphics::Color::new(0.8, 0.0, 0.0, 1.0)) }, //pink
-                &hex::Type::Off => p.color(graphics::Color::new(0.0, 0.0, 0.0, 1.0)), //yellow
+                &hex::Type::Off => p.color(graphics::Color::new(0.2, 0.2, 0.2, 1.0)), //yellow
             };
             
             self.meshbatch.add(p2);

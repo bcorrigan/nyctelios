@@ -27,8 +27,8 @@ impl World {
         let map_radius:i32 =24;
 
         let rule = Rule {
-            survival: vec![3,1],
-            birth: vec![3,4],
+            survival: vec![3,1,0],
+            birth: vec![5,3],
             states: 3,
         };
 
@@ -49,7 +49,7 @@ impl World {
                 //println!("q,r,s:{},{},{}", q, r, 0-q-r);
                 let coordinate = Coordinate::from_cubic(q,r, 0 - q - r);
                 let data = if small_rng.gen_bool(0.5) {
-                    Type::On(rule.states)
+                    Type::On(rule.states-1)
                 } else {
                     Type::Off
                 };
@@ -105,11 +105,13 @@ impl World {
 
             let alive_count:u8 = neighbours.iter().fold(0, |acc, coord| {
                 //println!("Get: {},{},{}", coord.q, coord.r, 0 - coord.q - coord.r);
-                match self.map.get(coord).unwrap() {
+                match self.map.get(*coord).unwrap() {
                     Type::On(_) => acc+1,
                     Type::Off => acc,
                 }
             });
+
+            //an item with alive_count=0 goes up in energy before dying?
 
             //println!("{}", alive_count);
 
@@ -120,7 +122,7 @@ impl World {
                     if self.rule.survival.contains(&alive_count) {
                         //println!("Survives");
                         //do we reset to state 5 here?? or just increment existing?
-                        let init_s = if s<&self.rule.states {
+                        let init_s = if s<&(self.rule.states-1) {
                             s+1
                         } else { *s };
                         map.insert(*coord, Type::On(init_s));
