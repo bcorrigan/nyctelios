@@ -58,9 +58,9 @@ impl event::EventHandler<ggez::GameError> for MainState {
         graphics::clear(ctx, [0.0, 0.0, 0.0, 1.0].into());
         self.meshbatch.clear();
 
-        if (self.frames % 25) == 24 {
+        //if (self.frames % 25) == 24 {
 			self.world.iterate();
-        }
+        //}
 
 
         //todo only clear meshbatch and recalculate world if something changes
