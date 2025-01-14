@@ -23,7 +23,7 @@ impl World {
     pub fn new() -> Self {
         let mut map = HashMap::default();
         let mut small_rng = SmallRng::from_entropy();
-        let map_radius: i32 = 80;
+        let map_radius: i32 = 20;
 
         let rule = Rule {
             survival: vec![2, 1],

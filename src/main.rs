@@ -1,141 +1,134 @@
-use ggez::event;
-use ggez::graphics;
-use ggez::graphics::{Color, Mesh};
-use ggez::graphics::{DrawMode, FillOptions, InstanceArray};
-use ggez::{Context, GameResult};
-use glam::Vec2;
-use hex::World;
-use std::env;
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
 use std::f32::consts::PI;
-use std::path;
 
 mod hex;
 
-// First we make a structure to contain the game's state
-struct MainState {
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                resolution: (1920.0, 1200.0).into(),
+                title: "Hexagons are the bestagons".to_string(),
+                ..default()
+            }),
+            ..default()
+        }))
+        .insert_resource(ClearColor(Color::BLACK))
+        .add_systems(Startup, setup)
+        .add_systems(Update, update_hexagons)
+        .run();
+}
+
+#[derive(Component)]
+struct HexWorld {
+    world: hex::World,
     frames: usize,
-    meshbatch: InstanceArray,
-    mesh: Mesh,
-    world: World,
 }
 
-impl MainState {
-    fn new(ctx: &mut Context) -> GameResult<MainState> {
-        let mb = &mut graphics::MeshBuilder::new();
-        let world = hex::World::new();
+#[derive(Component)]
+struct HexagonMarker;
 
-        //Draw hexagon points clockwise - top left point of hexagon is "origin"
-        //size is edge length
-        //coordinates are from simple trig
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+) {
+    // Camera
+    commands.spawn(Camera2d);
 
-        let h = world.size * (PI / 3.0).sin();
-        let t = world.size * (PI / 6.0).sin();
-        let margin = 1.0;
+    let world = hex::World::new();
 
-        mb.polygon(
-            DrawMode::Fill(FillOptions::default()),
-            &[
-                Vec2::new(0.0 + margin, 0.0 - margin),
-                Vec2::new(world.size - margin, 0.0 - margin),
-                Vec2::new(world.size + t - margin, -h),
-                Vec2::new(world.size - margin, -2.0 * h + margin),
-                Vec2::new(0.0 + margin, -2.0 * h + margin),
-                Vec2::new(-t + margin, -h),
-                Vec2::new(0.0 + margin, 0.0 - margin),
-            ],
-            graphics::Color::new(1.0, 1.0, 1.0, 1.0),
-        )?;
+    // Create hexagon mesh
+    let h = world.size * (PI / 3.0).sin();
+    let t = world.size * (PI / 6.0).sin();
+    let margin = 1.0;
 
-        let meshbatch = InstanceArray::new(ctx, None);
+    let vertices = [
+        [0.0 + margin, 0.0 - margin],
+        [world.size - margin, 0.0 - margin],
+        [world.size + t - margin, -h],
+        [world.size - margin, -2.0 * h + margin],
+        [0.0 + margin, -2.0 * h + margin],
+        [-t + margin, -h],
+        [0.0 + margin, 0.0 - margin],
+    ];
 
-        //let instancearray = InstanceArray::new(&mb.build(ctx), None);
-        let s = MainState {
-            frames: 0,
-            meshbatch,
-            mesh: Mesh::from_data(ctx, mb.build()),
-            world,
+    let mut mesh = Mesh::new(
+        bevy::render::render_resource::PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::default(),
+    );
+
+    // Convert the hexagon outline into triangles
+    let mut positions = Vec::new();
+    let mut indices = Vec::new();
+    let mut colors = Vec::new();
+
+    // Center point for triangulation
+    let center = [world.size / 2.0, -h];
+    positions.push([center[0], center[1], 0.0]);
+
+    // Add vertices and create triangles
+    for i in 0..6 {
+        positions.push([vertices[i][0], vertices[i][1], 0.0]);
+        indices.extend_from_slice(&[0, i as u32 + 1, ((i + 1) % 6 + 1) as u32]);
+        colors.push([1.0, 1.0, 1.0, 1.0]);
+    }
+    colors.push([1.0, 1.0, 1.0, 1.0]); // Center point color
+
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
+
+    // Store the mesh as a resource
+    commands.insert_resource(HexagonMesh(meshes.add(mesh)));
+
+    // Spawn the world component
+    commands.spawn(HexWorld { world, frames: 0 });
+}
+
+#[derive(Resource)]
+struct HexagonMesh(Handle<Mesh>);
+
+fn update_hexagons(
+    mut commands: Commands,
+    mut hex_world: Query<&mut HexWorld>,
+    mesh_handle: Res<HexagonMesh>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    existing_hexagons: Query<Entity, With<HexagonMarker>>,
+) {
+    let mut hex_world = hex_world.single_mut();
+    hex_world.world.iterate();
+
+    // Remove existing hexagons
+    for entity in &existing_hexagons {
+        commands.entity(entity).despawn();
+    }
+
+    // Spawn new hexagons
+    for (cell, data) in &hex_world.world.map {
+        let (x, y) = cell.cartesian_center(hex_world.world.spacing);
+
+        // Center the entire hexagonal grid
+        let offset_x = -0.2 * hex_world.world.radius as f32 * hex_world.world.size;
+        let offset_y = -0.2 * hex_world.world.radius as f32 * hex_world.world.size;
+
+        let position = Vec2::new(x + offset_x, y + offset_y);
+
+        let color = match data {
+            &hex::Type::On(i) if i == 2 => Color::srgb_u8(255, 255, 255),
+            &hex::Type::On(_) => Color::srgba(0.8, 0.0, 0.0, 1.0),
+            &hex::Type::Off => Color::srgba(0.2, 0.2, 0.2, 1.0),
         };
-        Ok(s)
+
+        commands.spawn((
+            Mesh2d(mesh_handle.0.clone().into()),
+            MeshMaterial2d(materials.add(ColorMaterial::from(color))),
+            Transform::from_xyz(position.x, position.y, 0.0),
+        ));
     }
-}
 
-impl event::EventHandler for MainState {
-    fn update(&mut self, _ctx: &mut Context) -> GameResult {
-        Ok(())
+    hex_world.frames += 1;
+    if hex_world.frames % 100 == 0 {
+        println!("Frame: {}", hex_world.frames);
     }
-
-    fn draw(&mut self, ctx: &mut Context) -> GameResult {
-        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
-        self.meshbatch.clear();
-
-        //if (self.frames % 25) == 24 {
-        self.world.iterate();
-        //}
-
-        //todo only clear meshbatch and recalculate world if something changes
-        for (cell, data) in &self.world.map {
-            let (x, y) = cell.cartesian_center(self.world.spacing);
-            let p = graphics::DrawParam::new().dest(Vec2::new(
-                x + 2.0 * self.world.radius as f32 * self.world.size,
-                y + 2.0 * self.world.radius as f32 * self.world.size,
-            ));
-            let p2 = match data {
-                &hex::Type::On(i) => {
-                    if i == 2 {
-                        //
-                        p.color(graphics::Color::new(1.0, 1.0, 0.0, 1.0))
-                    } else {
-                        p.color(graphics::Color::new(0.8, 0.0, 0.0, 1.0))
-                    }
-                } //pink
-                &hex::Type::Off => p.color(graphics::Color::new(0.2, 0.2, 0.2, 1.0)), //yellow
-            };
-
-            self.meshbatch.push(p2);
-        }
-
-        //self.meshbatch.draw(ctx, graphics::DrawParam::default())?;
-        //canvas.draw(&self.meshbatch, graphics::DrawParam::default());
-
-        canvas.draw_instanced_mesh(
-            self.mesh.clone(),
-            &self.meshbatch,
-            graphics::DrawParam::default(),
-        );
-
-        //graphics::present(ctx)?;
-        canvas.finish(ctx)?;
-        self.frames += 1;
-        if (self.frames % 100) == 0 {
-            println!("FPS: {}", ggez::timer::fps(ctx));
-        }
-
-        Ok(())
-    }
-}
-
-pub fn main() -> GameResult {
-    let resource_dir = if let Ok(manifest_dir) = env::var("CARGO_MANIFEST_DIR") {
-        let mut path = path::PathBuf::from(manifest_dir);
-        path.push("resources");
-        path
-    } else {
-        path::PathBuf::from("./resources")
-    };
-
-    let mut wm = ggez::conf::WindowMode::default()
-        .dimensions(1920.0, 1200.0)
-        //.fullscreen_type(ggez::conf::FullscreenType::True)
-        .resizable(true)
-        .resize_on_scale_factor_change(true);
-    wm.logical_size = None;
-
-    let cb = ggez::ContextBuilder::new("hexxxx", "bcorrigan")
-        .add_resource_path(resource_dir)
-        .window_mode(wm);
-    let (mut ctx, event_loop) = cb.build()?;
-    graphics::set_window_title(&ctx, "Hexagons are the bestagons");
-
-    let state = MainState::new(&mut ctx)?;
-    event::run(ctx, event_loop, state)
 }
