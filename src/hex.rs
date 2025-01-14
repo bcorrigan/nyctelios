@@ -25,8 +25,10 @@ impl World {
         let mut small_rng = SmallRng::from_entropy();
         let map_radius: i32 = 20;
 
+        //hmn, turns out you can't express some rules with this.
+        // If you want a dead cell to be born if it has 2 neighbours, and you want a live cell to die if it has 2 neighbours, you can't express that
         let rule = Rule {
-            survival: vec![2, 1],
+            survival: vec![3, 5],
             birth: vec![2],
             states: 3,
         };
@@ -66,7 +68,7 @@ impl World {
             }
         }
 
-        let size = 7.0;
+        let size = 13.0;
 
         World {
             map,

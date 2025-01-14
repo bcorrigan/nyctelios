@@ -26,9 +26,6 @@ struct HexWorld {
     frames: usize,
 }
 
-#[derive(Component)]
-struct HexagonMarker;
-
 // First, add a component to store the cell's coordinate
 #[derive(Component)]
 struct HexCell {
@@ -95,8 +92,8 @@ fn setup(
     // Create all hexagon entities initially
     for (cell, data) in &world.map {
         let (x, y) = cell.cartesian_center(world.spacing);
-        let offset_x = -1.0 * world.radius as f32 * world.size;
-        let offset_y = -1.0 * world.radius as f32 * world.size;
+        let offset_x = -0.0 * world.radius as f32 * world.size;
+        let offset_y = -0.0 * world.radius as f32 * world.size;
         let position = Vec2::new(x + offset_x, y + offset_y);
 
         let color = match data {
@@ -126,24 +123,24 @@ fn update_hexagons(
     mut hex_cells: Query<(&HexCell, &mut MeshMaterial2d<ColorMaterial>)>,
 ) {
     let mut hex_world = hex_world.single_mut();
-    hex_world.world.iterate();
-
-    // Update existing hexagons
-    for (hex_cell, mut material) in &mut hex_cells {
-        if let Some(data) = hex_world.world.map.get(&hex_cell.coordinate) {
-            let color = match data {
-                &hex::Type::On(i) if i == 2 => Color::srgb_u8(255, 255, 255),
-                &hex::Type::On(_) => Color::srgba(0.8, 0.0, 0.0, 1.0),
-                &hex::Type::Off => Color::srgba(0.2, 0.2, 0.2, 1.0),
-            };
-
-            // Update the material
-            material.0 = materials.add(ColorMaterial::from(color));
-        }
-    }
-
     hex_world.frames += 1;
-    if hex_world.frames % 100 == 0 {
+    if hex_world.frames % 1 == 0 {
+        hex_world.world.iterate();
+
+        // Update existing hexagons
+        for (hex_cell, mut material) in &mut hex_cells {
+            if let Some(data) = hex_world.world.map.get(&hex_cell.coordinate) {
+                let color = match data {
+                    &hex::Type::On(i) if i == 2 => Color::srgb_u8(255, 255, 255),
+                    &hex::Type::On(_) => Color::srgba(0.8, 0.0, 0.0, 1.0),
+                    &hex::Type::Off => Color::srgba(0.2, 0.2, 0.2, 1.0),
+                };
+
+                // Update the material
+                material.0 = materials.add(ColorMaterial::from(color));
+            }
+        }
+
         println!("Frame: {}", hex_world.frames);
     }
 }
