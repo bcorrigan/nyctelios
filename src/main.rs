@@ -1,4 +1,5 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle};
+use hexgrid::Coordinate;
 use std::f32::consts::PI;
 
 mod hex;
@@ -27,6 +28,15 @@ struct HexWorld {
 
 #[derive(Component)]
 struct HexagonMarker;
+
+// First, add a component to store the cell's coordinate
+#[derive(Component)]
+struct HexCell {
+    coordinate: Coordinate,
+}
+
+#[derive(Resource)]
+struct HexagonMesh(Handle<Mesh>);
 
 fn setup(
     mut commands: Commands,
@@ -80,38 +90,13 @@ fn setup(
     mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
 
     // Store the mesh as a resource
-    commands.insert_resource(HexagonMesh(meshes.add(mesh)));
+    let mesh_handle = HexagonMesh(meshes.add(mesh));
 
-    // Spawn the world component
-    commands.spawn(HexWorld { world, frames: 0 });
-}
-
-#[derive(Resource)]
-struct HexagonMesh(Handle<Mesh>);
-
-fn update_hexagons(
-    mut commands: Commands,
-    mut hex_world: Query<&mut HexWorld>,
-    mesh_handle: Res<HexagonMesh>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    existing_hexagons: Query<Entity, With<HexagonMarker>>,
-) {
-    let mut hex_world = hex_world.single_mut();
-    hex_world.world.iterate();
-
-    // Remove existing hexagons
-    for entity in &existing_hexagons {
-        commands.entity(entity).despawn();
-    }
-
-    // Spawn new hexagons
-    for (cell, data) in &hex_world.world.map {
-        let (x, y) = cell.cartesian_center(hex_world.world.spacing);
-
-        // Center the entire hexagonal grid
-        let offset_x = -0.2 * hex_world.world.radius as f32 * hex_world.world.size;
-        let offset_y = -0.2 * hex_world.world.radius as f32 * hex_world.world.size;
-
+    // Create all hexagon entities initially
+    for (cell, data) in &world.map {
+        let (x, y) = cell.cartesian_center(world.spacing);
+        let offset_x = -1.0 * world.radius as f32 * world.size;
+        let offset_y = -1.0 * world.radius as f32 * world.size;
         let position = Vec2::new(x + offset_x, y + offset_y);
 
         let color = match data {
@@ -121,10 +106,40 @@ fn update_hexagons(
         };
 
         commands.spawn((
+            HexCell { coordinate: *cell },
             Mesh2d(mesh_handle.0.clone().into()),
             MeshMaterial2d(materials.add(ColorMaterial::from(color))),
             Transform::from_xyz(position.x, position.y, 0.0),
         ));
+    }
+
+    // Store the mesh handle as a resource
+    commands.insert_resource(mesh_handle);
+
+    // Spawn the world component
+    commands.spawn(HexWorld { world, frames: 0 });
+}
+
+fn update_hexagons(
+    mut hex_world: Query<&mut HexWorld>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut hex_cells: Query<(&HexCell, &mut MeshMaterial2d<ColorMaterial>)>,
+) {
+    let mut hex_world = hex_world.single_mut();
+    hex_world.world.iterate();
+
+    // Update existing hexagons
+    for (hex_cell, mut material) in &mut hex_cells {
+        if let Some(data) = hex_world.world.map.get(&hex_cell.coordinate) {
+            let color = match data {
+                &hex::Type::On(i) if i == 2 => Color::srgb_u8(255, 255, 255),
+                &hex::Type::On(_) => Color::srgba(0.8, 0.0, 0.0, 1.0),
+                &hex::Type::Off => Color::srgba(0.2, 0.2, 0.2, 1.0),
+            };
+
+            // Update the material
+            material.0 = materials.add(ColorMaterial::from(color));
+        }
     }
 
     hex_world.frames += 1;
