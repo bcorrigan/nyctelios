@@ -23,14 +23,14 @@ impl World {
     pub fn new() -> Self {
         let mut map = HashMap::default();
         let mut small_rng = SmallRng::from_entropy();
-        let map_radius: i32 = 20;
+        let map_radius: i32 = 10;
 
         //hmn, turns out you can't express some rules with this.
         // If you want a dead cell to be born if it has 2 neighbours, and you want a live cell to die if it has 2 neighbours, you can't express that
         let rule = Rule {
             survival: vec![3, 5],
             birth: vec![2],
-            states: 3,
+            states: 5,
         };
 
         //coordinates of 6 mirrored hexagonal origins
@@ -49,7 +49,7 @@ impl World {
             for r in r1..=r2 {
                 let coordinate = Coordinate::from_cubic(q, r, 0 - q - r);
                 let data = if small_rng.gen_bool(0.5) {
-                    Type::On(rule.states - 1)
+                    Type::On(rule.states)
                 } else {
                     Type::Off
                 };
@@ -104,6 +104,7 @@ impl World {
                         Type::Off => acc,
                     });
 
+            //println!("coord:{:?} alive neighbours: {}", coord, alive_count);
             match self.map.get(coord).unwrap() {
                 Type::On(s) => {
                     //already On, so we check if it survives
@@ -114,20 +115,24 @@ impl World {
                         } else {
                             *s
                         };
+                        //println!("ALIVE->ALIVE, s:{}", init_s);
                         map.insert(*coord, Type::On(init_s));
                     } else {
                         //die = decrement counter
                         let new_s = s - 1;
-                        if new_s == 0 {
+                        if new_s < 1 {
+                            //println!("ALIVE->DEAD, s:{}", s);
                             //Off
                             map.insert(*coord, Type::Off);
                         } else {
+                            //println!("ALIVE->ALIVE, s-1:{}", new_s);
                             map.insert(*coord, Type::On(new_s));
                         }
                     }
                 }
                 Type::Off => {
                     if self.rule.birth.contains(&alive_count) {
+                        //println!("DEAD->ALIVE, s:1");
                         //does this init at s=5 or s=1?
                         map.insert(*coord, Type::On(1));
                     }
